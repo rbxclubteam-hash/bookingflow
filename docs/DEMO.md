@@ -20,6 +20,18 @@ Wait for the backend to report healthy, then open two browser tabs:
 
 All times shown in the app are UTC.
 
+A fresh seed contains three services (**Intro Consultation** 30 min, **Standard Session**
+60 min, **Extended Session** 90 min) and three demo bookings, each a few business days out:
+
+| Customer | Service | Seeded status |
+| --- | --- | --- |
+| Avery Morgan | Intro Consultation | `pending` |
+| Jordan Lee | Standard Session | `confirmed` |
+| Taylor Kim | Extended Session | `cancelled` |
+
+This walkthrough only relies on those seeded statuses and the transitions it performs
+itself, so it runs the same way on any clean seed.
+
 ---
 
 ## 1. Book an appointment as a customer  (~60s)
@@ -42,7 +54,8 @@ All times shown in the app are UTC.
 ## 2. Triage it as the business  (~40s)
 
 1. Switch to the **admin** tab (`/admin`) and refresh. The new **Dana Whitfield** booking
-   appears with a **Pending** badge, alongside the seeded demo bookings.
+   appears with a **Pending** badge, alongside the three seeded bookings (Avery Morgan —
+   pending, Jordan Lee — confirmed, Taylor Kim — cancelled).
 2. Use the **Pending** filter to show only requests that need action, then switch back to
    **All**.
 3. Click the **Dana Whitfield** row to open **Booking details** — service, time, duration,
@@ -60,18 +73,20 @@ All times shown in the app are UTC.
 
 ## 4. Complete it  (~15s)
 
-1. Open the booking again and click **Mark completed**.
+1. Open the **Dana Whitfield** booking again and click **Mark completed**.
 2. The status becomes **Completed** and no further actions are offered — it's terminal.
-   (The seeded **Jordan Lee** booking is already in this state for comparison.)
+   `cancelled` (see the seeded **Taylor Kim** booking) is the other terminal state.
 
 ## 5. Show the double-booking guard  (~40s)
 
-1. In the **admin** tab, note the time of a booking that is **confirmed** (not cancelled) —
-   for example the seeded **Avery Morgan** booking, or the one you just confirmed before
-   completing it. If you completed yours, confirm a fresh customer booking first so there's
-   an active one to collide with.
+Any booking that is **not cancelled** holds its time — the seeded **Jordan Lee**
+(`confirmed`) booking is a reliable target, and so is the **Dana Whitfield** booking you
+just worked through (it stays `completed`, which still blocks its slot).
+
+1. In the **admin** tab, open **Jordan Lee** and note its service (**Standard Session**),
+   date, and start time.
 2. In the **customer** tab, start a new booking for the **same service, same date, and the
-   same start time** as that active booking.
+   same start time**.
 3. That start time is **not offered** on the time step — availability already excludes it.
 4. (Optional, to show the server is the source of truth) send the create request directly:
 
@@ -85,8 +100,10 @@ All times shown in the app are UTC.
    available."}` — even though the request bypassed the UI. Service IDs are in
    `GET http://localhost:8000/api/services`.
 
-> Point out: overlap protection lives in the backend, not the UI. Two people hitting the
-> same slot at the same moment cannot both succeed — the second gets a `409`.
+> Point out: overlap protection lives in the backend, not the UI. A create request for a
+> taken time returns `409` even when it bypasses the UI (application-level interval
+> validation), and the database's unique index on active `start_at` values means two
+> requests racing for that *same start time* cannot both be inserted.
 
 ---
 

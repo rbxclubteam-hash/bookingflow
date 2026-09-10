@@ -25,7 +25,8 @@ A small system that owns the whole booking loop and is correct by construction:
    genuinely open.
 2. The business manages every booking — confirm, reschedule, complete, cancel — from one
    screen.
-3. The server, not the UI, guarantees no two bookings overlap.
+3. The server, not the UI, validates interval overlap on every booking request, so the
+   normal booking flow cannot place an appointment that intersects an existing one.
 
 Deliberately **not** in the MVP: authentication, staff accounts, payments, notifications,
 calendar sync, multi-resource scheduling, a service-editor UI. Those are real-build
@@ -61,18 +62,24 @@ Availability is computed server-side from a few rules:
 - A candidate time is blocked if its interval overlaps **any booking that is not
   cancelled**. Cancelling a booking returns its time to the pool.
 
-Overlap protection is enforced in two layers:
+Overlap protection has two parts:
 
-1. **Application check.** Before a create or reschedule commits, the API queries for any
-   non-cancelled booking whose interval overlaps the requested one and returns
-   `409 Selected time is no longer available.` if it finds one.
-2. **Database constraint.** A partial unique index covers the start time of every
-   non-cancelled booking, and the create path translates a unique-violation into the same
-   `409`. This closes the race where two requests pass the application check at the same
-   instant — only one can commit.
+1. **Application-level validation.** Before a create or reschedule commits, the API queries
+   for any non-cancelled booking whose interval intersects the requested one and returns
+   `409 Selected time is no longer available.` if it finds one. This covers every interval
+   overlap in the normal booking flow.
+2. **Same-start database backstop.** A partial unique index covers the `start_at` of every
+   non-cancelled booking, and the create path turns the resulting unique-violation into the
+   same `409`. This closes the narrow race where two requests for the **identical start
+   time** pass the application check at the same instant — only one row can be inserted. It
+   is a plain uniqueness constraint on `start_at`, **not** a PostgreSQL exclusion
+   constraint, so it does not independently prevent two overlapping bookings that start at
+   *different* times.
 
-The result: a customer can never grab a slot that's already taken, and concurrent requests
-for the same slot cannot both succeed.
+In practice the application check keeps appointments from overlapping during normal use,
+and the database index removes the identical-start race. A general guard against arbitrary
+concurrent interval overlaps (for example a GiST exclusion constraint over a time range)
+is a sensible next step for a production build.
 
 ## Technical approach
 
@@ -82,7 +89,7 @@ for the same slot cannot both succeed.
 | Persistence | PostgreSQL 16 via SQLAlchemy; schema managed with Alembic |
 | Time | Everything stored and returned in UTC; slots aligned to a 30-minute grid |
 | Availability | Computed on demand from business hours + existing non-cancelled bookings |
-| Integrity | Application-level overlap check **plus** a DB partial-unique index |
+| Integrity | Application-level interval-overlap check on every request, plus a partial-unique DB index on `start_at` (identical-start backstop, not an exclusion constraint) |
 | Frontend | Next.js (App Router) + TypeScript + Tailwind CSS |
 | Local run | Docker Compose: `db`, `backend`, `frontend`; backend seeds demo data on start |
 
@@ -114,8 +121,9 @@ it's usable immediately.
 
 - **A complete vertical slice**, not a front-end mockup: real API, real database, real
   persistence, real availability math.
-- **Correctness under pressure** — duration-aware availability and a two-layer guarantee
-  that slots can't be double-booked, including concurrent requests.
+- **Correctness under pressure** — duration-aware availability, interval-overlap validation
+  on every booking request, and a database uniqueness backstop that removes the
+  identical-start race.
 - **A clean domain model** with an explicit status lifecycle and enforced transitions.
 - **FastAPI + Next.js integration** against a small, deliberate, frozen contract.
 - **Considered UX** across desktop and mobile for both the customer and the operator.

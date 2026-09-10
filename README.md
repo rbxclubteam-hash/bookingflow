@@ -52,8 +52,9 @@ BookingFlow is a small, complete booking system that handles the whole loop:
 
 - A guided public booking flow that only ever offers **real, open** times.
 - An open admin dashboard to triage and manage every booking.
-- Server-side rules that make **overlapping bookings impossible**, including under
-  concurrent requests.
+- Server-side overlap validation that rejects an intersecting appointment on every booking
+  request, plus a database uniqueness constraint on the start time that removes the
+  identical-start race.
 
 ## Customer flow
 
@@ -91,9 +92,12 @@ The admin dashboard (`/admin`) lists every booking and supports:
   Cancelling a booking frees its time again.
 - **Status lifecycle:** `pending → confirmed → completed`, with `cancelled` reachable from
   pending or confirmed. `cancelled` and `completed` are final.
-- **Concurrency-safe:** the API rejects a conflicting booking (`409`) and the database has
-  a partial unique constraint on active bookings as a second line of defence, so two
-  simultaneous requests for the same slot cannot both win.
+- **Overlap handling:** the API validates interval overlap on every create and reschedule
+  and returns `409` for an intersecting appointment. A database unique index on the
+  `start_at` of non-cancelled bookings adds a backstop for two requests racing on the
+  **same start time** — it is a plain uniqueness constraint, not a PostgreSQL exclusion
+  constraint, so it does not by itself prevent overlaps between bookings that start at
+  different times.
 
 ## Architecture / stack
 
