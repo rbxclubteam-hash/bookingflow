@@ -161,6 +161,17 @@ def test_same_slot_double_booking_is_rejected(client: TestClient) -> None:
     assert create(client, start_at).status_code == 409
 
 
+def test_database_constraint_is_collision_backstop(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("app.main.ensure_available", lambda *args, **kwargs: None)
+    start_at = at(future_business_date(13), 15)
+    assert create(client, start_at).status_code == 201
+    response = create(client, start_at)
+    assert response.status_code == 409
+    assert response.json() == {"detail": "Selected time is no longer available."}
+
+
 def test_cancelled_booking_frees_slot(client: TestClient) -> None:
     start_at = at(future_business_date(14), 15)
     created = create(client, start_at).json()

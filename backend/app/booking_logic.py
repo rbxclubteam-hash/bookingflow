@@ -46,7 +46,7 @@ def get_booking_or_404(session: Session, booking_id: uuid.UUID) -> Booking:
 def requested_interval(service: Service, start_at: datetime) -> tuple[datetime, datetime]:
     if start_at.tzinfo is None or start_at.utcoffset() is None:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "start_at must include a timezone."
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "start_at must include a timezone."
         )
     start_at = start_at.astimezone(UTC)
     end_at = start_at + timedelta(minutes=service.duration_minutes)
@@ -64,19 +64,19 @@ def validate_slot(start_at: datetime, end_at: datetime, *, now: datetime | None 
         or start_date > today + timedelta(days=BOOKING_HORIZON_DAYS)
     ):
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "start_at is outside the booking horizon."
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "start_at is outside the booking horizon."
         )
     if start_at.weekday() == 6:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Sunday is unavailable.")
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Sunday is unavailable.")
     if start_at.minute % SLOT_MINUTES or start_at.second or start_at.microsecond:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "start_at must use the 30-minute slot grid."
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "start_at must use the 30-minute slot grid."
         )
     opens = datetime.combine(start_date, time(OPENING_HOUR), UTC)
     closes = datetime.combine(start_date, time(CLOSING_HOUR), UTC)
     if start_at < opens or end_at > closes:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "Selected time is outside business hours."
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "Selected time is outside business hours."
         )
 
 
@@ -127,7 +127,7 @@ def available_slots(
         days=BOOKING_HORIZON_DAYS
     ):
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "date is outside the booking horizon."
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "date is outside the booking horizon."
         )
     if requested_date.weekday() == 6:
         return []

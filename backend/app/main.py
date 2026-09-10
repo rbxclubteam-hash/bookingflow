@@ -96,7 +96,7 @@ def list_bookings(
     session: Session = Depends(get_db),
 ) -> list[Booking]:
     if status_ is not None and status_ not in BOOKING_STATUSES:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Unsupported booking status.")
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Unsupported booking status.")
     query = select(Booking)
     if date_ is not None:
         day_start = datetime.combine(date_, datetime.min.time(), UTC)
