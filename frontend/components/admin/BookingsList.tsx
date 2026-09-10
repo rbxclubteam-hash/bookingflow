@@ -53,44 +53,49 @@ export function BookingsList({
         ))}
       </ul>
 
-      {/* Desktop: table */}
-      <div className="hidden overflow-hidden rounded-2xl border border-stone-200 bg-white sm:block">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-stone-200 bg-stone-50 text-xs uppercase tracking-wide text-stone-500">
-            <tr>
-              <th className="px-4 py-3 font-medium">Date &amp; time</th>
-              <th className="px-4 py-3 font-medium">Customer</th>
-              <th className="px-4 py-3 font-medium">Service</th>
-              <th className="px-4 py-3 font-medium">Contact</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-stone-100">
-            {bookings.map((booking) => (
-              <tr
-                key={booking.id}
-                onClick={() => onOpen(booking)}
-                className="cursor-pointer transition-colors hover:bg-stone-50"
-              >
-                <td className="px-4 py-3.5 whitespace-nowrap text-stone-700">
-                  {formatDateTimeUTC(booking.start_at)}
-                </td>
-                <td className="max-w-[12rem] truncate px-4 py-3.5 font-medium text-stone-900">
-                  {booking.customer_name}
-                </td>
-                <td className="max-w-[12rem] truncate px-4 py-3.5 text-stone-700">
-                  {booking.service.name}
-                </td>
-                <td className="max-w-[12rem] truncate px-4 py-3.5 text-stone-500">
-                  {booking.email || booking.phone || "—"}
-                </td>
-                <td className="px-4 py-3.5">
-                  <StatusBadge status={booking.status} />
-                </td>
+      {/* Desktop: table. The outer div keeps the rounded border styling; the inner
+          div is the actual horizontal scroll container, so on narrower desktop/tablet
+          widths (e.g. 768px) the Status column scrolls into view instead of being
+          clipped and made unreachable. */}
+      <div className="hidden rounded-2xl border border-stone-200 bg-white sm:block">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-stone-200 bg-stone-50 text-xs uppercase tracking-wide text-stone-500">
+              <tr>
+                <th className="px-4 py-3 font-medium">Date &amp; time</th>
+                <th className="px-4 py-3 font-medium">Customer</th>
+                <th className="px-4 py-3 font-medium">Service</th>
+                <th className="px-4 py-3 font-medium">Contact</th>
+                <th className="px-4 py-3 font-medium">Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-stone-100">
+              {bookings.map((booking) => (
+                <tr
+                  key={booking.id}
+                  onClick={() => onOpen(booking)}
+                  className="cursor-pointer transition-colors hover:bg-stone-50"
+                >
+                  <td className="px-4 py-3.5 whitespace-nowrap text-stone-700">
+                    {formatDateTimeUTC(booking.start_at)}
+                  </td>
+                  <td className="max-w-[12rem] truncate px-4 py-3.5 font-medium text-stone-900">
+                    {booking.customer_name}
+                  </td>
+                  <td className="max-w-[12rem] truncate px-4 py-3.5 text-stone-700">
+                    {booking.service.name}
+                  </td>
+                  <td className="max-w-[12rem] truncate px-4 py-3.5 text-stone-500">
+                    {booking.email || booking.phone || "—"}
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <StatusBadge status={booking.status} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </>
   );
